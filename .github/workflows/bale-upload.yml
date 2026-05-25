@@ -27,24 +27,6 @@ jobs:
         run: pip install rubpy
 
       - name: 🧪 Run multi‑size upload test
-        env:
-          AUTH_KEY: "zcdaxlhgjywznswjaeryfhyqpaqgnjcl"
-          PRIVATE_KEY: |
-            -----BEGIN RSA PRIVATE KEY-----
-            MIICWwIBAAKBgQCkliFiHdYCWPkZe25TtFKd60TMjztyAz9SYXVf5UFf7dvD1xXW
-            diX/oLfR07R7dzoPGKLXPQbpuZXxWspTs7/3FS1OcZJkH4f2RbVJhDTQ/1arL92E
-            heVNn1I0M33Mi6SojnnNmoZgf574ppXw89ED6Agzoh/6Q9cbW0OGIwh2QwIDAQAB
-            AoGABOfEUK3Xom++bFbe90BcZs0t0fRKoiPgoxCGAV80s4h/6hiJMZ5FDFLpetJ9
-            NZTT6bFFR5iT+F4jky7yzw/3r6s1H5RmlJV9BY9thlhVz1SMy9VGx3wSGqYXglYH
-            vt30j0yRWCpmoE338hONFtPXwafD780t0Wsp7ineimaR5ukCQQC+5kUwXJUMRvzv
-            fOgwahmZCOz7FNOQr1NpU0nUCzNPDw+57tANUsBSJC0dBUdZOMe2Mw948ayR/0C/
-            RWG28Ne/AkEA3Laz/JdSRvhnFQBJ+0lx/EZn3IZceidD5014gUS/uIotvoTLqKxm
-            KU4odOxCsZyA7x9wyEVNCHS6UMr72ShifQJAKQTNpSCfni26t7L9KToDGhEC6siE
-            1Tf3ElClMnzdn4U6+dbIubQoQv4m+29g71j2AL5j+rbjP9O7E95Sqr6BfQJARNLk
-            BRvamC7VVgMlDqq0VIpP0MBFDgI4dmP987FQZ2cPJJ2cNBiuMqsginUxxtiai/Yt
-            4QVbJAviHVdueSTSsQJAV/AvhoUeb/c/Tj8b/KTLnbjDvW7hYFV6DvH3k5FdNuG+
-            MHS8p8zjxgDNEFNYPouAC4IDfCGt6097DRjEOzu1+Q==
-            -----END RSA PRIVATE KEY-----
         run: |
           python - <<'PYEOF'
           import asyncio, time, os, subprocess
@@ -87,11 +69,8 @@ jobs:
               return elapsed, speed, msg_id
 
           async def main():
-              app = Client(
-                  auth_key=os.environ["AUTH_KEY"],
-                  private_key=os.environ["PRIVATE_KEY"],
-                  platform="Android"
-              )
+              # استفاده از فایل نشست موجود در ریشه ریپو
+              app = Client(name="rubika_vps_session", platform="Android")
 
               print("📍 Connecting to Rubika...")
               await app.start()
