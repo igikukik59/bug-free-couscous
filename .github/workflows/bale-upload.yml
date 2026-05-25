@@ -1,4 +1,4 @@
-name: 🔍 Quick Session Test (Rubika)
+name: 🚀 Rubika Multi-Size Upload Speed Test (10‑100 MB)
 
 on:
   workflow_dispatch:
@@ -7,9 +7,9 @@ permissions:
   contents: write
 
 jobs:
-  quick-test:
+  speedtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
 
     steps:
       - name: 📥 Checkout repository
@@ -20,28 +20,103 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📦 Install rubpy
+      - name: 🎬 Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: 📦 Install Python dependencies
         run: pip install rubpy
 
-      - name: 🔌 Test connection & small upload
+      - name: 🧪 Run multi‑size upload test
         run: |
           python - <<'PYEOF'
           import asyncio, time, os, subprocess
           from rubpy import Client
 
+          TARGET_SIZES_MB = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+          VIDEO_BITRATE = "8000k"
+          AUDIO_BITRATE = "128k"
+          TOTAL_BITRATE = 8_000_000 + 128_000
+
+          def generate_video(size_mb):
+              target_bytes = size_mb * 1024 * 1024
+              duration = target_bytes * 8 / TOTAL_BITRATE
+              output_file = f"test_video_{size_mb}MB.mp4"
+              cmd = [
+                  "ffmpeg", "-y",
+                  "-f", "lavfi", "-i", f"testsrc2=size=640x360:rate=24:duration={duration:.2f}",
+                  "-f", "lavfi", "-i", f"sine=frequency=800:duration={duration:.2f}",
+                  "-c:v", "libx264", "-b:v", VIDEO_BITRATE,
+                  "-maxrate", VIDEO_BITRATE, "-bufsize", VIDEO_BITRATE,
+                  "-c:a", "aac", "-b:a", AUDIO_BITRATE,
+                  "-shortest", output_file
+              ]
+              subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              return output_file
+
+          async def upload_and_measure(client, video_path, size_mb):
+              size_bytes = os.path.getsize(video_path)
+              print(f"⏳ Uploading {size_mb} MB ({size_bytes} bytes)...")
+              start = time.monotonic()
+              response = await client.send_video(
+                  object_guid="me",
+                  video=video_path,
+                  caption=f"GitHub Actions – {size_mb} MB test"
+              )
+              elapsed = time.monotonic() - start
+              speed = (size_bytes * 8) / (elapsed * 1024 * 1024)
+              msg_id = response.get("message_update", {}).get("message_id", "?")
+              print(f"✅ {size_mb} MB → {elapsed:.2f}s  |  {speed:.2f} Mbps  |  msg_id: {msg_id}")
+              return elapsed, speed, msg_id
+
           async def main():
+              # استفاده از فایل نشست موجود در ریشهٔ ریپو
               app = Client(name="rubika_vps_session", platform="Android")
-              print("📍 Connecting...")
+
+              print("📍 Connecting to Rubika...")
               await app.start()
-              print("✅ Connected")
-              me = await app.get_me()
-              user = getattr(me, "user", None)
-              if user:
-                  print(f"👤 {getattr(user, 'first_name', '?')}  |  GUID: {getattr(user, 'user_guid', '?')}")
-              else:
-                  print("⚠️ Could not fetch user info")
+              print("✅ Connected\n")
+
+              results = []
+              for size_mb in TARGET_SIZES_MB:
+                  print(f"--- {size_mb} MB ---")
+                  video_path = generate_video(size_mb)
+                  try:
+                      elapsed, speed, msg_id = await upload_and_measure(app, video_path, size_mb)
+                      results.append((size_mb, "SUCCESS", elapsed, speed, msg_id))
+                  except Exception as e:
+                      print(f"❌ Upload failed: {type(e).__name__}: {e}")
+                      results.append((size_mb, "FAILED", None, None, None))
+                  finally:
+                      if os.path.exists(video_path):
+                          os.remove(video_path)
+                  print()
+
               await app.disconnect()
-              print("🎉 Session works on GitHub Actions!")
+
+              # نوشتن گزارش در فایل لاگ
+              with open("لاگلاگلاگ", "w", encoding="utf-8") as f:
+                  f.write("Rubika Multi-Size Upload Speed Test Results\n")
+                  f.write("=" * 50 + "\n")
+                  f.write(f"User GUID: (hidden)\n")
+                  f.write(f"Test Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                  f.write(f"{'Size (MB)':>8} | {'Status':<8} | {'Time (s)':>8} | {'Speed (Mbps)':>12} | Message ID\n")
+                  f.write("-" * 60 + "\n")
+                  for size, status, elapsed, speed, msg_id in results:
+                      if elapsed is not None:
+                          f.write(f"{size:>8} | {status:<8} | {elapsed:>8.2f} | {speed:>12.2f} | {msg_id}\n")
+                      else:
+                          f.write(f"{size:>8} | {status:<8} | {'N/A':>8} | {'N/A':>12} | N/A\n")
+                  f.write("-" * 60 + "\n")
+              print("\n✅ Summary written to لاگلاگلاگ")
 
           asyncio.run(main())
           PYEOF
+
+      - name: 📌 Commit and push log file (always)
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add لاگلاگلاگ
+          git commit -m "📋 Add Rubika upload log" || echo "Nothing to commit"
+          git push
