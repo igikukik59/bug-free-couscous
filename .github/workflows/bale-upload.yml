@@ -23,13 +23,14 @@ jobs:
       - name: 🎬 Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: 📦 Install Python dependencies
-        run: pip install rubpy
-
-      - name: 🧪 Run multi‑size upload test
+      - name: 📦 Install Python dependencies (with OpenCV for thumbnails)
         run: |
-          python - <<'PYEOF'
-          import asyncio, time, os, subprocess
+          pip install rubpy opencv-python-headless
+
+      - name: 🧪 Run multi‑size upload test (unbuffered, real‑time logs)
+        run: |
+          python -u - <<'PYEOF' 2>&1 | tee لاگلاگلاگ
+          import asyncio, time, os, subprocess, sys
           from rubpy import Client
 
           TARGET_SIZES_MB = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
@@ -55,7 +56,7 @@ jobs:
 
           async def upload_and_measure(client, video_path, size_mb):
               size_bytes = os.path.getsize(video_path)
-              print(f"⏳ Uploading {size_mb} MB ({size_bytes} bytes)...")
+              print(f"⏳ Uploading {size_mb} MB ({size_bytes} bytes)...", flush=True)
               start = time.monotonic()
               response = await client.send_video(
                   object_guid="me",
@@ -65,52 +66,42 @@ jobs:
               elapsed = time.monotonic() - start
               speed = (size_bytes * 8) / (elapsed * 1024 * 1024)
               msg_id = response.get("message_update", {}).get("message_id", "?")
-              print(f"✅ {size_mb} MB → {elapsed:.2f}s  |  {speed:.2f} Mbps  |  msg_id: {msg_id}")
+              print(f"✅ {size_mb} MB → {elapsed:.2f}s  |  {speed:.2f} Mbps  |  msg_id: {msg_id}", flush=True)
               return elapsed, speed, msg_id
 
           async def main():
-              # استفاده از فایل نشست موجود در ریشهٔ ریپو
               app = Client(name="rubika_vps_session", platform="Android")
 
-              print("📍 Connecting to Rubika...")
+              print("📍 Connecting to Rubika...", flush=True)
               await app.start()
-              print("✅ Connected\n")
+              print("✅ Connected\n", flush=True)
 
               results = []
               for size_mb in TARGET_SIZES_MB:
-                  print(f"--- {size_mb} MB ---")
+                  print(f"--- {size_mb} MB ---", flush=True)
                   video_path = generate_video(size_mb)
                   try:
                       elapsed, speed, msg_id = await upload_and_measure(app, video_path, size_mb)
                       results.append((size_mb, "SUCCESS", elapsed, speed, msg_id))
                   except Exception as e:
-                      print(f"❌ Upload failed: {type(e).__name__}: {e}")
+                      print(f"❌ Upload failed: {type(e).__name__}: {e}", flush=True)
                       results.append((size_mb, "FAILED", None, None, None))
                   finally:
                       if os.path.exists(video_path):
                           os.remove(video_path)
-                  print()
+                  print()   # blank line
 
               await app.disconnect()
 
-              # نوشتن گزارش در فایل لاگ
-              with open("لاگلاگلاگ", "w", encoding="utf-8") as f:
-                  f.write("Rubika Multi-Size Upload Speed Test Results\n")
-                  f.write("=" * 50 + "\n")
-                  f.write(f"User GUID: (hidden)\n")
-                  f.write(f"Test Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                  f.write(f"{'Size (MB)':>8} | {'Status':<8} | {'Time (s)':>8} | {'Speed (Mbps)':>12} | Message ID\n")
-                  f.write("-" * 60 + "\n")
-                  for size, status, elapsed, speed, msg_id in results:
-                      if elapsed is not None:
-                          f.write(f"{size:>8} | {status:<8} | {elapsed:>8.2f} | {speed:>12.2f} | {msg_id}\n")
-                      else:
-                          f.write(f"{size:>8} | {status:<8} | {'N/A':>8} | {'N/A':>12} | N/A\n")
-                  f.write("-" * 60 + "\n")
-              print("\n✅ Summary written to لاگلاگلاگ")
+              # Note: The log file لاگلاگلاگ is already being written by tee,
+              # but we can also add a summary at the end if needed.
+              # However, the tee output already contains all logs.
+              print("\n✅ All tests finished.", flush=True)
 
           asyncio.run(main())
           PYEOF
+        # The tee command already creates لاگلاگلاگ with all output.
+        # No need to write it again.
 
       - name: 📌 Commit and push log file (always)
         if: always()
