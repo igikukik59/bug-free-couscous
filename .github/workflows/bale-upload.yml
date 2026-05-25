@@ -1,21 +1,19 @@
 name: 🚀 Rubika Upload Speed Test (10‑100 MB)
 
 on:
-  workflow_dispatch:          # اجرای دستی از تب Actions
+  workflow_dispatch:
 
 permissions:
-  contents: write            # برای push کردن فایل لاگ
+  contents: write
 
 jobs:
   speedtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45      # حداکثر زمان اجرا
+    timeout-minutes: 60
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: 🐍 Setup Python 3.11
         uses: actions/setup-python@v5
@@ -28,27 +26,38 @@ jobs:
       - name: 📦 Install Python dependencies
         run: pip install rubpy
 
-      # ---------------------------------------------------------------
-      #  مرحلهٔ اصلی: تست آپلود برای حجم‌های ۱۰ تا ۱۰۰ مگابایت
-      # ---------------------------------------------------------------
       - name: 🧪 Run multi‑size upload test
+        env:
+          AUTH_KEY: "zcdaxlhgjywznswjaeryfhyqpaqgnjcl"
+          PRIVATE_KEY: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIICWwIBAAKBgQCkliFiHdYCWPkZe25TtFKd60TMjztyAz9SYXVf5UFf7dvD1xXW
+            diX/oLfR07R7dzoPGKLXPQbpuZXxWspTs7/3FS1OcZJkH4f2RbVJhDTQ/1arL92E
+            heVNn1I0M33Mi6SojnnNmoZgf574ppXw89ED6Agzoh/6Q9cbW0OGIwh2QwIDAQAB
+            AoGABOfEUK3Xom++bFbe90BcZs0t0fRKoiPgoxCGAV80s4h/6hiJMZ5FDFLpetJ9
+            NZTT6bFFR5iT+F4jky7yzw/3r6s1H5RmlJV9BY9thlhVz1SMy9VGx3wSGqYXglYH
+            vt30j0yRWCpmoE338hONFtPXwafD780t0Wsp7ineimaR5ukCQQC+5kUwXJUMRvzv
+            fOgwahmZCOz7FNOQr1NpU0nUCzNPDw+57tANUsBSJC0dBUdZOMe2Mw948ayR/0C/
+            RWG28Ne/AkEA3Laz/JdSRvhnFQBJ+0lx/EZn3IZceidD5014gUS/uIotvoTLqKxm
+            KU4odOxCsZyA7x9wyEVNCHS6UMr72ShifQJAKQTNpSCfni26t7L9KToDGhEC6siE
+            1Tf3ElClMnzdn4U6+dbIubQoQv4m+29g71j2AL5j+rbjP9O7E95Sqr6BfQJARNLk
+            BRvamC7VVgMlDqq0VIpP0MBFDgI4dmP987FQZ2cPJJ2cNBiuMqsginUxxtiai/Yt
+            4QVbJAviHVdueSTSsQJAV/AvhoUeb/c/Tj8b/KTLnbjDvW7hYFV6DvH3k5FdNuG+
+            MHS8p8zjxgDNEFNYPouAC4IDfCGt6097DRjEOzu1+Q==
+            -----END RSA PRIVATE KEY-----
         run: |
           python - <<'PYEOF'
-          import asyncio, time, os, sys, subprocess
+          import asyncio, time, os, subprocess
           from rubpy import Client
 
-          # اندازه‌های هدف (به مگابایت)
           TARGET_SIZES_MB = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-
-          # پارامترهای ساخت ویدیو (نرخ بیت ثابت برای رسیدن به حجم تقریبی)
-          VIDEO_BITRATE = "8000k"          # 8 Mbps
+          VIDEO_BITRATE = "8000k"
           AUDIO_BITRATE = "128k"
-          TOTAL_BITRATE = 8_000_000 + 128_000   # بیت‌برثانیه کل
+          TOTAL_BITRATE = 8_000_000 + 128_000
 
           def generate_video(size_mb):
-              """ساخت یک ویدیوی مصنوعی با حجم تقریبی size_mb مگابایت"""
               target_bytes = size_mb * 1024 * 1024
-              duration = target_bytes * 8 / TOTAL_BITRATE   # مدت زمان لازم
+              duration = target_bytes * 8 / TOTAL_BITRATE
               output_file = f"test_video_{size_mb}MB.mp4"
               cmd = [
                   "ffmpeg", "-y",
@@ -63,7 +72,6 @@ jobs:
               return output_file
 
           async def upload_and_measure(client, video_path, size_mb):
-              """آپلود یک ویدیو و برگرداندن زمان، سرعت و message_id"""
               size_bytes = os.path.getsize(video_path)
               print(f"⏳ Uploading {size_mb} MB ({size_bytes} bytes)...")
               start = time.monotonic()
@@ -73,15 +81,17 @@ jobs:
                   caption=f"GitHub Actions – {size_mb} MB test"
               )
               elapsed = time.monotonic() - start
-              speed = (size_bytes * 8) / (elapsed * 1024 * 1024)  # Mbps
+              speed = (size_bytes * 8) / (elapsed * 1024 * 1024)
               msg_id = response.get("message_update", {}).get("message_id", "?")
               print(f"✅ {size_mb} MB → {elapsed:.2f}s  |  {speed:.2f} Mbps  |  msg_id: {msg_id}")
               return elapsed, speed, msg_id
 
           async def main():
-              # استفاده از فایل نشستی که در ریشهٔ ریپو وجود دارد
-              # نام "rubika_vps_session"  ->  rubika_vps_session.rp
-              app = Client(name="rubika_vps_session", platform="Android")
+              app = Client(
+                  auth_key=os.environ["AUTH_KEY"],
+                  private_key=os.environ["PRIVATE_KEY"],
+                  platform="Android"
+              )
 
               print("📍 Connecting to Rubika...")
               await app.start()
@@ -96,19 +106,18 @@ jobs:
                       results.append((size_mb, "SUCCESS", elapsed, speed, msg_id))
                   except Exception as e:
                       print(f"❌ Upload failed: {type(e).__name__}: {e}")
-                      results.append((size_mb, f"FAILED", None, None, None))
+                      results.append((size_mb, "FAILED", None, None, None))
                   finally:
                       if os.path.exists(video_path):
                           os.remove(video_path)
-                  print()   # خط خالی برای خوانایی
+                  print()
 
               await app.disconnect()
 
-              # نوشتن گزارش در فایل لاگ
               with open("لاگلاگلاگ", "w", encoding="utf-8") as f:
                   f.write("Rubika Multi-Size Upload Speed Test Results\n")
                   f.write("=" * 50 + "\n")
-                  f.write(f"User GUID: u0IxnGB065fc9e76f3ed537be7f97b6b\n")
+                  f.write(f"User GUID: (hidden)\n")
                   f.write(f"Test Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
                   f.write(f"{'Size (MB)':>8} | {'Status':<8} | {'Time (s)':>8} | {'Speed (Mbps)':>12} | Message ID\n")
                   f.write("-" * 60 + "\n")
@@ -123,9 +132,6 @@ jobs:
           asyncio.run(main())
           PYEOF
 
-      # ---------------------------------------------------------------
-      #  همیشه (حتی در صورت خطا) فایل لاگ را commit و push کن
-      # ---------------------------------------------------------------
       - name: 📌 Commit and push log file (always)
         if: always()
         run: |
