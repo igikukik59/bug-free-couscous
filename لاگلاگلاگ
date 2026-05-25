@@ -1,18 +1,38 @@
-Bale Multi-Size Upload Speed Test Results
-==================================================
-User ID: 615825163
-Test Time: 2026-05-25 06:53:23
+📍 Connecting to Rubika...
+Phone Number: Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/rubpy/methods/utilities/start.py", line 40, in start
+    result = await self.get_me()
+             ^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/rubpy/methods/users/get_me.py", line 21, in get_me
+    return await self.get_user_info()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/rubpy/methods/users/get_user_info.py", line 27, in get_user_info
+    result = await self.builder(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/rubpy/methods/advanced/build.py", line 62, in builder
+    raise exceptions(status_det)(result, request=None)
+rubpy.exceptions.NotRegistered: {'status': 'ERROR_ACTION', 'status_det': 'NOT_REGISTERED'}
 
-Size (MB) | Status   | Time (s) | Speed (Mbps) | Message ID
-------------------------------------------------------------
-      10 | SUCCESS  |    11.50 |         2.72 | 5935996664109090
-      20 | SUCCESS  |     8.20 |         7.67 | 1960374837153584
-      30 | SUCCESS  |     4.02 |        23.53 | 4758400939247301
-      40 | SUCCESS  |    10.37 |        12.13 | 2839681210014942
-      50 | SUCCESS  |     4.63 |        34.03 | 6996800442952081
-      60 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
-      70 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
-      80 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
-      90 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
-     100 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
-------------------------------------------------------------
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 69, in <module>
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "<stdin>", line 44, in main
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/rubpy/methods/utilities/start.py", line 47, in start
+    phone_number = input('Phone Number: ')
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+EOFError: EOF when reading a line
+Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7fc93bd2f550>
+Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7fc93c783620>, 179.33054039)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7fc93bd2f3d0>
