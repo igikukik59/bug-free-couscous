@@ -1,7 +1,18 @@
-📍 Connecting to Bale...
-✅ Connected
-👤 User ID: 615825163
-📦 test_video.mp4 – 3.80 MB
-⏳ Uploading video...
-✅ Upload successful in 3.96s – 7.66 Mbps
-   Message ID: 8944323046707221
+Bale Multi-Size Upload Speed Test Results
+==================================================
+User ID: 615825163
+Test Time: 2026-05-25 06:53:23
+
+Size (MB) | Status   | Time (s) | Speed (Mbps) | Message ID
+------------------------------------------------------------
+      10 | SUCCESS  |    11.50 |         2.72 | 5935996664109090
+      20 | SUCCESS  |     8.20 |         7.67 | 1960374837153584
+      30 | SUCCESS  |     4.02 |        23.53 | 4758400939247301
+      40 | SUCCESS  |    10.37 |        12.13 | 2839681210014942
+      50 | SUCCESS  |     4.63 |        34.03 | 6996800442952081
+      60 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
+      70 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
+      80 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
+      90 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
+     100 | FAILED: BaleError: Bale service reported an error on topic 3: File size exceeded limit |      N/A |          N/A | N/A
+------------------------------------------------------------
