@@ -3,6 +3,9 @@ name: 🚀 Bale Upload & Speed Test (10 MB)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write      # اجازه push به ریپو
+
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -24,11 +27,12 @@ jobs:
       - name: 📦 Install Python dependencies
         run: pip install aiobale Pillow
 
-      - name: 🎥 Generate random 10 MB video (ffmpeg)
+      - name: 🎥 Generate ~10 MB random video (10 sec, 8000kbps)
         run: |
-          ffmpeg -y -f lavfi -i testsrc=duration=20:size=640x360:rate=24 \
-                 -f lavfi -i sine=frequency=800:duration=20 \
-                 -c:v libx264 -b:v 4000k -c:a aac -b:a 128k \
+          ffmpeg -y -f lavfi -i "testsrc2=size=640x360:rate=24:duration=10" \
+                 -f lavfi -i "sine=frequency=800:duration=10" \
+                 -c:v libx264 -b:v 8000k -maxrate 8000k -bufsize 8000k \
+                 -c:a aac -b:a 128k \
                  -shortest test_video.mp4
           ls -lh test_video.mp4
 
@@ -44,7 +48,8 @@ jobs:
           import asyncio, time, os, sys
           from io import BytesIO
           from PIL import Image
-          from aiobale import Client, Dispatcher, FileInput
+          from aiobale import Client, Dispatcher
+          from aiobale.types import FileInput
           from aiobale.enums import ChatType
 
           if sys.platform == 'win32':
@@ -92,8 +97,6 @@ jobs:
 
       - name: 📌 Commit and push log file
         if: always()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
