@@ -1,15 +1,15 @@
-name: 🚀 Bale Upload & Speed Test (10 MB)
+name: 🚀 Bale Multi-Size Upload Speed Test (10–100 MB)
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write      # اجازه push به ریپو
+  contents: write      # برای push کردن لاگ
 
 jobs:
-  upload:
+  speed-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60   # حداکثر زمان اجرا ۶۰ دقیقه
     steps:
       - name: 📥 Checkout repository (shallow)
         uses: actions/checkout@v4
@@ -27,39 +27,67 @@ jobs:
       - name: 📦 Install Python dependencies
         run: pip install aiobale Pillow
 
-      - name: 🎥 Generate ~10 MB random video (10 sec, 8000kbps)
-        run: |
-          ffmpeg -y -f lavfi -i "testsrc2=size=640x360:rate=24:duration=10" \
-                 -f lavfi -i "sine=frequency=800:duration=10" \
-                 -c:v libx264 -b:v 8000k -maxrate 8000k -bufsize 8000k \
-                 -c:a aac -b:a 128k \
-                 -shortest test_video.mp4
-          ls -lh test_video.mp4
-
       - name: 🔐 Restore session file from base64
         env:
           SESSION_B64: "AAAABAcSNwiL/tKlAhDEvLLA6fDwj84BGgYuLjAwLi4iCAoGLi4wMC4uOgCCAQCaAQcIxqfKwN8zogECCAEaAwiAECLGBwrDB2V5SmhiR2NpT2lKU1V6STFOaUlzSW5SNWNDSTZJa3BYVkNKOS5leUpsZUhBaU9qRTRNVEEzT1RBMU1UTXNJbWxoZENJNk1UYzNPVFk0TmpVeE15d2lhWE56SWpvaWFIUjBjSE02THk5M1pXSXVZbUZzWlM1aGFTSXNJbkJoZVd4dllXUWlPbnNpWVhCd1gybGtJam8wTENKaGRYUm9YMmxrSWpvaU5qazNNekUyTmpjek56WXhNekl4TmpJMU5TSXNJbUYxZEdoZmMybGtJam94TmpNNU16UTBNREl3TENKelpYSjJhV05sSWpvaWQyVmlYMnhwZEdVaUxDSjFjMlZ5WDJsa0lqbzJNVFU0TWpVeE5qTjlmUS55OUlHMmhqeW9WamNtQ2JtTFBQQ09MZU8zcDhYaW1TX1pwc2VqZURBRU5teWpSOWhhYUF4SVdkNnBCcHg3TWxleS1VSlFPa0VRRFpRMVVnRmJlejVrZGJTdnVfU3BfRDhib2d1UzdkbnNQMlRyNE5yNzVhR3llbEs4YWhRZ1lpMWhSUVZnQXZWbHZWR3R3R0t1ZUU5OHdRVzRvM2tCNWNjdERtakVjeW1TT1BMWmVzeWhERFJaUkV1WEJjcjhWUE5iQzNJREtrMzhwelI1ZW4takNkbHVpTzEzUFE5X0Y0N1dDZ2h0aGJwcnZ2aVNBUDdSa3Z1SWt4Rzh5RFBfQ1dCa09XYmc3d1pqazRnX1dlU0RGMkJmeFU0X3F6dU94enFIelQtTk41MHc5N1hVbTlkaWwzQzRzQkEtT1RnVHhWWmgyWEFKX2JYUDNCNE5fbnB4cTdibkZwaHdGQ1pGUGwwU2paRDUwdDV4OVJsNzdzenpSQktkSEJTeHFPd3JLY21QUl9UcWFzRDQ4aXpRUE1kYXBvMHNTeFpTRXZOX2lVOWhJZVpkWUFTdEpReU0tOHZSd3RFY01uTlFlSkoxQUdDblphTmJ6V3c2M3pubUhmNWh4eG1NQ3hPRXUzNDcwZTFmQzdOc1F0UG91OGFqOEZMR2RlVHRMbmJUVUNHSGdNdFFWUmZSRl9qQVlYaHVmQl91TkF3S3p1cERZTDFJcGZmV1didDJHemRIb0RJOXVVZjc4cnJhN19HcHI3ci0yRWFfQlNrUm1yVWtDQWUxbEsyNW5tM1F0XzNITW5ocEt0Z052NGpiUTkyXzl5amhZakZDZG84QzBxdVY5czJ6NWlqNzJiX1VZNUFkNUpUWmpUcndmQkY2anVYeVA1Y1c2UHVZc2l3d0RadFE0Z4AAAAAQZ3JwYy1zdGF0dXM6IDANCg=="
         run: echo "$SESSION_B64" | base64 -d > bale_uploader.bale
 
-      - name: 📤 Upload video and save log
-        id: upload
+      - name: 🧪 Run multi-size upload test
         run: |
-          python - <<'PYEOF' 2>&1 | tee لاگلاگلاگ
-          import asyncio, time, os, sys
+          python - <<'PYEOF'
+          import asyncio, time, os, sys, subprocess
           from io import BytesIO
           from PIL import Image
           from aiobale import Client, Dispatcher
           from aiobale.types import FileInput
           from aiobale.enums import ChatType
 
-          if sys.platform == 'win32':
-              asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+          TARGET_SIZES_MB = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+          TOTAL_BITRATE = 8000000 + 128000  # video 8000kbps + audio 128kbps
+          VIDEO_BITRATE = "8000k"
+          AUDIO_BITRATE = "128k"
 
           def make_thumbnail():
-              img = Image.new('RGB', (50, 50), color=(100, 100, 100))
+              img = Image.new('RGB', (50, 50), color=(100,100,100))
               buf = BytesIO()
               img.save(buf, format='JPEG')
               return buf.getvalue(), 50, 50
+
+          async def upload_file(client, chat_id, file_path, size_mb):
+              size_bytes = os.path.getsize(file_path)
+              thumb, tw, th = make_thumbnail()
+              print(f"⏳ Uploading {size_mb}MB file ({size_bytes} bytes)...")
+              start = time.monotonic()
+              msg = await client.send_video(
+                  FileInput(file_path),
+                  chat_id,
+                  ChatType.PRIVATE,
+                  caption=f"GitHub Actions - {size_mb}MB test",
+                  cover_thumb=FileInput(thumb),
+                  cover_width=tw,
+                  cover_height=th
+              )
+              elapsed = time.monotonic() - start
+              speed = (size_bytes * 8) / (elapsed * 1024 * 1024)  # Mbps
+              print(f"✅ {size_mb}MB uploaded in {elapsed:.2f}s – {speed:.2f} Mbps, msg_id: {msg.message_id}")
+              return elapsed, speed, msg.message_id
+
+          def generate_video(size_mb):
+              target_bytes = size_mb * 1024 * 1024
+              duration = target_bytes * 8 / TOTAL_BITRATE
+              duration_str = f"{duration:.2f}"
+              output_file = f"test_video_{size_mb}MB.mp4"
+              cmd = [
+                  "ffmpeg", "-y",
+                  "-f", "lavfi", "-i", f"testsrc2=size=640x360:rate=24:duration={duration_str}",
+                  "-f", "lavfi", "-i", f"sine=frequency=800:duration={duration_str}",
+                  "-c:v", "libx264", "-b:v", VIDEO_BITRATE, "-maxrate", VIDEO_BITRATE, "-bufsize", VIDEO_BITRATE,
+                  "-c:a", "aac", "-b:a", AUDIO_BITRATE,
+                  "-shortest", output_file
+              ]
+              print(f"🎥 Generating {size_mb}MB video (duration ~{duration_str}s)...")
+              subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              return output_file
 
           async def main():
               dp = Dispatcher()
@@ -68,38 +96,50 @@ jobs:
               await client.start(run_in_background=True)
               print("✅ Connected")
               me = await client.get_me()
-              print(f"👤 User ID: {me.id}")
+              chat_id = me.id
+              print(f"👤 User ID: {chat_id}\n")
 
-              path = "test_video.mp4"
-              size = os.path.getsize(path)
-              print(f"📦 {path} – {size/1024/1024:.2f} MB")
+              results = []
+              for size_mb in TARGET_SIZES_MB:
+                  print(f"--- {size_mb}MB ---")
+                  video_path = generate_video(size_mb)
+                  try:
+                      elapsed, speed, msg_id = await upload_file(client, chat_id, video_path, size_mb)
+                      results.append((size_mb, "SUCCESS", elapsed, speed, msg_id))
+                  except Exception as e:
+                      print(f"❌ Upload failed for {size_mb}MB: {type(e).__name__}: {e}")
+                      results.append((size_mb, f"FAILED: {type(e).__name__}: {e}", None, None, None))
+                  finally:
+                      if os.path.exists(video_path):
+                          os.remove(video_path)
+                  print()  # blank line
 
-              thumb, tw, th = make_thumbnail()
-              print("⏳ Uploading video...")
-              start = time.monotonic()
-              msg = await client.send_video(
-                  FileInput(path),
-                  me.id,
-                  ChatType.PRIVATE,
-                  caption="GitHub Actions - 10MB test",
-                  cover_thumb=FileInput(thumb),
-                  cover_width=tw,
-                  cover_height=th
-              )
-              elapsed = time.monotonic() - start
-              speed = (size * 8) / (elapsed * 1024 * 1024)
-              print(f"✅ Upload successful in {elapsed:.2f}s – {speed:.2f} Mbps")
-              print(f"   Message ID: {msg.message_id}")
               await client.stop()
+
+              # Write summary log
+              with open("لاگلاگلاگ", "w", encoding="utf-8") as f:
+                  f.write("Bale Multi-Size Upload Speed Test Results\n")
+                  f.write("="*50 + "\n")
+                  f.write(f"User ID: {chat_id}\n")
+                  f.write(f"Test Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                  f.write(f"{'Size (MB)':>8} | {'Status':<8} | {'Time (s)':>8} | {'Speed (Mbps)':>12} | Message ID\n")
+                  f.write("-"*60 + "\n")
+                  for size, status, elapsed, speed, msg_id in results:
+                      if elapsed is not None:
+                          f.write(f"{size:>8} | {status:<8} | {elapsed:>8.2f} | {speed:>12.2f} | {msg_id}\n")
+                      else:
+                          f.write(f"{size:>8} | {status:<8} | {'N/A':>8} | {'N/A':>12} | N/A\n")
+                  f.write("-"*60 + "\n")
+              print("\n✅ Summary written to لاگلاگلاگ")
 
           asyncio.run(main())
           PYEOF
 
-      - name: 📌 Commit and push log file
+      - name: 📌 Commit and push log file (always)
         if: always()
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add لاگلاگلاگ
-          git commit -m "📋 Add upload log" || echo "Nothing to commit"
+          git commit -m "📋 Update multi-size upload log" || echo "Nothing to commit"
           git push
